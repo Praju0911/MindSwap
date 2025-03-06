@@ -11,11 +11,12 @@ import { PlusCircle, LineChart, Book, ListChecks, GraduationCap } from "lucide-r
 import SkillCard from "@/components/SkillCard";
 import AddSkillForm from "@/components/AddSkillForm";
 import { toast } from "sonner";
+import { Skill } from "@/types/database";
 
 const Dashboard = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
-  const [userSkills, setUserSkills] = useState<any[]>([]);
+  const [userSkills, setUserSkills] = useState<Skill[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const [isAddingSkill, setIsAddingSkill] = useState(false);
   const [isLoadingSkills, setIsLoadingSkills] = useState(true);
@@ -31,9 +32,9 @@ const Dashboard = () => {
       if (!user) return;
       
       const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
         .single();
       
       if (error) {
@@ -50,10 +51,10 @@ const Dashboard = () => {
       setIsLoadingSkills(true);
       
       const { data, error } = await supabase
-        .from("skills")
-        .select("*, profiles:user_id(*)")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+        .from('skills')
+        .select('*, profiles:user_id(*)')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
       
       if (error) {
         console.error("Error fetching skills:", error);
@@ -62,7 +63,7 @@ const Dashboard = () => {
         return;
       }
       
-      setUserSkills(data || []);
+      setUserSkills(data as Skill[] || []);
       setIsLoadingSkills(false);
     };
 
@@ -70,17 +71,17 @@ const Dashboard = () => {
     fetchUserSkills();
   }, [user]);
 
-  const handleAddSkill = async (newSkill: any) => {
+  const handleAddSkill = async (newSkill: Partial<Skill>) => {
     try {
       if (!user) return;
       
       const { data, error } = await supabase
-        .from("skills")
+        .from('skills')
         .insert({
           ...newSkill,
           user_id: user.id
         })
-        .select("*, profiles:user_id(*)");
+        .select('*, profiles:user_id(*)');
       
       if (error) {
         console.error("Error adding skill:", error);
@@ -88,7 +89,7 @@ const Dashboard = () => {
         return;
       }
       
-      setUserSkills([data[0], ...userSkills]);
+      setUserSkills([data[0] as Skill, ...userSkills]);
       setIsAddingSkill(false);
       toast.success("Skill added successfully");
     } catch (error) {
