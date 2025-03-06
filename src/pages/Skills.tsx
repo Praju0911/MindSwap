@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import SkillCard from '@/components/SkillCard';
+import FiltersSidebar from '@/components/FiltersSidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -10,20 +11,14 @@ import {
   Search, 
   Filter, 
   SlidersHorizontal, 
-  Check
+  Check,
+  X
 } from 'lucide-react';
 import { 
-  Tabs, 
-  TabsList, 
-  TabsTrigger, 
-  TabsContent 
-} from "@/components/ui/tabs";
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Sheet,
+  SheetContent,
+  SheetTrigger
+} from "@/components/ui/sheet";
 import { skills, categories, getUserById } from '@/data/skills';
 
 const Skills = () => {
@@ -31,21 +26,56 @@ const Skills = () => {
   const queryParams = new URLSearchParams(location.search);
   const categoryParam = queryParams.get('category');
   
+  // Define all popular tags from our skills data
+  const allTags = Array.from(new Set(skills.flatMap(skill => skill.tags)));
+  const popularTags = allTags.slice(0, 10); // Take top 10 tags
+  
   const [selectedCategory, setSelectedCategory] = useState(categoryParam || 'all');
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredSkills, setFilteredSkills] = useState([]);
   const [sortBy, setSortBy] = useState('recent');
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+  
+  // Extended filters state
+  const [filters, setFilters] = useState({
+    category: categoryParam || 'all',
+    tags: [],
+    featured: false,
+    dateRange: [0, 4] as [number, number]
+  });
   
   useEffect(() => {
     filterSkills();
-  }, [selectedCategory, searchQuery, sortBy]);
+  }, [filters, searchQuery, sortBy]);
   
   const filterSkills = () => {
     let filtered = [...skills];
     
     // Filter by category
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(skill => skill.category === selectedCategory);
+    if (filters.category !== 'all') {
+      filtered = filtered.filter(skill => skill.category === filters.category);
+    }
+    
+    // Filter by tags if any selected
+    if (filters.tags.length > 0) {
+      filtered = filtered.filter(skill => 
+        filters.tags.some(tag => skill.tags.includes(tag))
+      );
+    }
+    
+    // Filter by featured status
+    if (filters.featured) {
+      filtered = filtered.filter(skill => skill.featured);
+    }
+    
+    // Filter by date range
+    if (filters.dateRange[0] > 0) {
+      const now = new Date();
+      const monthsAgo = [0, 1, 3, 6, 12][filters.dateRange[0]];
+      const cutoffDate = new Date();
+      cutoffDate.setMonth(now.getMonth() - monthsAgo);
+      
+      filtered = filtered.filter(skill => new Date(skill.createdAt) >= cutoffDate);
     }
     
     // Filter by search query
@@ -69,8 +99,25 @@ const Skills = () => {
     setFilteredSkills(filtered);
   };
   
-  const handleCategoryChange = (category) => {
-    setSelectedCategory(category);
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+    
+    if (key === 'category') {
+      setSelectedCategory(value);
+    }
+  };
+  
+  const handleClearFilters = () => {
+    setFilters({
+      category: 'all',
+      tags: [],
+      featured: false,
+      dateRange: [0, 4]
+    });
+    setSelectedCategory('all');
   };
   
   const handleSearchChange = (e) => {
@@ -80,6 +127,14 @@ const Skills = () => {
   const handleSortChange = (value) => {
     setSortBy(value);
   };
+  
+  // Check if any filters are active
+  const hasActiveFilters = 
+    filters.category !== 'all' || 
+    filters.tags.length > 0 || 
+    filters.featured || 
+    filters.dateRange[0] > 0 ||
+    searchQuery;
 
   return (
     <Layout>
@@ -116,152 +171,168 @@ const Skills = () => {
       {/* Skills Listing */}
       <section className="py-12">
         <div className="container px-4 mx-auto">
-          {/* Filters */}
-          <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <Tabs 
-              defaultValue={selectedCategory} 
-              onValueChange={handleCategoryChange}
-              className="w-full md:w-auto"
-            >
-              <div className="overflow-x-auto pb-2">
-                <TabsList className="inline-flex h-9 rounded-lg bg-muted p-1 text-muted-foreground">
-                  <TabsTrigger 
-                    value="all" 
-                    className="rounded-md text-xs sm:text-sm px-3"
-                  >
-                    All Skills
-                  </TabsTrigger>
-                  {categories.map((category) => (
-                    <TabsTrigger 
-                      key={category} 
-                      value={category} 
-                      className="rounded-md text-xs sm:text-sm px-3"
-                    >
-                      {category}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </div>
-            </Tabs>
-            
-            <div className="flex items-center space-x-2 self-end md:self-auto">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9">
-                    <SlidersHorizontal className="h-4 w-4 mr-2" />
-                    Sort By
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuCheckboxItem 
-                    checked={sortBy === 'recent'} 
-                    onCheckedChange={() => handleSortChange('recent')}
-                    className="cursor-pointer"
-                  >
-                    Most Recent
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem 
-                    checked={sortBy === 'alphabetical'} 
-                    onCheckedChange={() => handleSortChange('alphabetical')}
-                    className="cursor-pointer"
-                  >
-                    Alphabetical
-                  </DropdownMenuCheckboxItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+          {/* Mobile Filters Button */}
+          <div className="md:hidden mb-4">
+            <Sheet open={isMobileFiltersOpen} onOpenChange={setIsMobileFiltersOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" className="w-full">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filters {hasActiveFilters && <Badge className="ml-1 px-1">{filteredSkills.length}</Badge>}
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[85%] sm:max-w-md pt-10">
+                <FiltersSidebar
+                  categories={categories}
+                  selectedFilters={filters}
+                  onFilterChange={handleFilterChange}
+                  onClearFilters={handleClearFilters}
+                  popularTags={popularTags}
+                />
+              </SheetContent>
+            </Sheet>
           </div>
           
-          {/* Active Filters */}
-          {(selectedCategory !== 'all' || searchQuery) && (
-            <div className="mb-6 flex flex-wrap items-center gap-2">
-              <span className="text-sm text-muted-foreground">Active filters:</span>
-              {selectedCategory !== 'all' && (
-                <Badge 
-                  variant="secondary" 
-                  className="flex items-center gap-1 cursor-pointer"
-                  onClick={() => setSelectedCategory('all')}
-                >
-                  Category: {selectedCategory}
-                  <button className="ml-1 text-muted-foreground hover:text-foreground">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                  </button>
-                </Badge>
-              )}
-              {searchQuery && (
-                <Badge 
-                  variant="secondary" 
-                  className="flex items-center gap-1 cursor-pointer"
-                  onClick={() => setSearchQuery('')}
-                >
-                  Search: {searchQuery}
-                  <button className="ml-1 text-muted-foreground hover:text-foreground">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                  </button>
-                </Badge>
-              )}
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-7 px-2 text-xs"
-                onClick={() => {
-                  setSelectedCategory('all');
-                  setSearchQuery('');
-                }}
-              >
-                Clear all
-              </Button>
+          <div className="flex flex-col md:flex-row gap-6">
+            {/* Desktop Filters Sidebar */}
+            <div className="hidden md:block md:w-1/4 lg:w-1/5">
+              <FiltersSidebar
+                categories={categories}
+                selectedFilters={filters}
+                onFilterChange={handleFilterChange}
+                onClearFilters={handleClearFilters}
+                popularTags={popularTags}
+                className="sticky top-24"
+              />
             </div>
-          )}
-          
-          {/* Skills Grid */}
-          {filteredSkills.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredSkills.map((skill, index) => {
-                const user = getUserById(skill.userId);
-                return (
-                  <div key={skill.id} className={`animate-on-scroll duration-${(index % 3 + 1) * 100}`}>
-                    <SkillCard
-                      id={skill.id}
-                      title={skill.title}
-                      description={skill.description}
-                      category={skill.category}
-                      user={{
-                        id: user.id,
-                        name: user.name,
-                        avatar: user.avatar
-                      }}
-                      featured={skill.featured}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
-                <Search className="h-8 w-8 text-muted-foreground" />
+            
+            {/* Main Content */}
+            <div className="md:w-3/4 lg:w-4/5">
+              {/* Active Filters & Sort */}
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+                {/* Active Filters */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {hasActiveFilters && (
+                    <>
+                      <span className="text-sm text-muted-foreground">Active filters:</span>
+                      {filters.category !== 'all' && (
+                        <Badge 
+                          variant="secondary" 
+                          className="flex items-center gap-1 cursor-pointer"
+                          onClick={() => handleFilterChange('category', 'all')}
+                        >
+                          Category: {filters.category}
+                          <X className="h-3 w-3 ml-1" />
+                        </Badge>
+                      )}
+                      {filters.tags.map(tag => (
+                        <Badge 
+                          key={tag}
+                          variant="secondary" 
+                          className="flex items-center gap-1 cursor-pointer"
+                          onClick={() => {
+                            const newTags = filters.tags.filter(t => t !== tag);
+                            handleFilterChange('tags', newTags);
+                          }}
+                        >
+                          Tag: {tag}
+                          <X className="h-3 w-3 ml-1" />
+                        </Badge>
+                      ))}
+                      {filters.featured && (
+                        <Badge 
+                          variant="secondary" 
+                          className="flex items-center gap-1 cursor-pointer"
+                          onClick={() => handleFilterChange('featured', false)}
+                        >
+                          Featured only
+                          <X className="h-3 w-3 ml-1" />
+                        </Badge>
+                      )}
+                      {searchQuery && (
+                        <Badge 
+                          variant="secondary" 
+                          className="flex items-center gap-1 cursor-pointer"
+                          onClick={() => setSearchQuery('')}
+                        >
+                          Search: {searchQuery}
+                          <X className="h-3 w-3 ml-1" />
+                        </Badge>
+                      )}
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 px-2 text-xs"
+                        onClick={handleClearFilters}
+                      >
+                        Clear all
+                      </Button>
+                    </>
+                  )}
+                </div>
+                
+                {/* Sort Dropdown */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground hidden sm:inline">Sort by:</span>
+                  <select
+                    className="text-sm rounded-md border border-input bg-background px-3 py-1"
+                    value={sortBy}
+                    onChange={(e) => handleSortChange(e.target.value)}
+                  >
+                    <option value="recent">Most Recent</option>
+                    <option value="alphabetical">Alphabetical</option>
+                  </select>
+                </div>
               </div>
-              <h3 className="text-lg font-medium mb-2">No skills found</h3>
-              <p className="text-muted-foreground mb-6">
-                We couldn't find any skills matching your current filters.
-              </p>
-              <Button 
-                onClick={() => {
-                  setSelectedCategory('all');
-                  setSearchQuery('');
-                }}
-              >
-                Clear Filters
-              </Button>
+              
+              {/* Results Count */}
+              <div className="mb-6">
+                <p className="text-sm text-muted-foreground">
+                  Showing <span className="font-medium text-foreground">{filteredSkills.length}</span> skills
+                </p>
+              </div>
+              
+              {/* Skills Grid */}
+              {filteredSkills.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredSkills.map((skill, index) => {
+                    const user = getUserById(skill.userId);
+                    return (
+                      <div key={skill.id} className={`animate-on-scroll duration-${(index % 3 + 1) * 100}`}>
+                        <SkillCard
+                          id={skill.id}
+                          title={skill.title}
+                          description={skill.description}
+                          category={skill.category}
+                          user={{
+                            id: user.id,
+                            name: user.name,
+                            avatar: user.avatar
+                          }}
+                          featured={skill.featured}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12 bg-muted/30 rounded-lg">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+                    <Search className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-2">No skills found</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                    We couldn't find any skills matching your current filters.
+                    Try adjusting your search terms or filters.
+                  </p>
+                  <Button 
+                    onClick={handleClearFilters}
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </section>
     </Layout>
