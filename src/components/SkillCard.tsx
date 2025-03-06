@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from "react-router-dom";
-import { Shuffle, MessageCircle } from "lucide-react";
+import { Shuffle, MessageCircle, ExternalLink } from "lucide-react";
 
 export interface SkillCardProps {
   id: string;
@@ -66,9 +66,11 @@ const SkillCard = ({
             <MessageCircle className="h-4 w-4 mr-1" />
             <span className="text-xs">Chat</span>
           </Button>
-          <Button variant="outline" size="sm" className="text-xs">
-            <Shuffle className="h-4 w-4 mr-1" />
-            Exchange
+          <Button variant="outline" size="sm" className="text-xs" asChild>
+            <Link to={`/skills/${id}`}>
+              <ExternalLink className="h-4 w-4 mr-1" />
+              View
+            </Link>
           </Button>
         </div>
       </CardFooter>

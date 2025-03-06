@@ -10,6 +10,8 @@ import HowItWorks from "./pages/HowItWorks";
 import SignUp from "./pages/SignUp";
 import SignIn from "./pages/SignIn";
 import NotFound from "./pages/NotFound";
+import SkillDetail from "./pages/SkillDetail";
+import UserProfile from "./pages/UserProfile";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +24,8 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/skills" element={<Skills />} />
+          <Route path="/skills/:skillId" element={<SkillDetail />} />
+          <Route path="/profile/:userId" element={<UserProfile />} />
           <Route path="/how-it-works" element={<HowItWorks />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/signin" element={<SignIn />} />
