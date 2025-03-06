@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -11,11 +11,11 @@ import { Input } from "@/components/ui/input";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import {
   Card,
@@ -25,50 +25,64 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
-  }),
   email: z.string().email({
     message: "Please enter a valid email address.",
   }),
-  password: z.string().min(8, {
-    message: "Password must be at least 8 characters.",
+  username: z.string().min(3, {
+    message: "Username must be at least 3 characters.",
   }),
-  termsAccepted: z.boolean().refine((val) => val === true, {
-    message: "You must accept the terms and conditions.",
+  fullName: z.string().min(2, {
+    message: "Full name is required.",
   }),
+  password: z.string().min(6, {
+    message: "Password must be at least 6 characters.",
+  }),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
 });
 
 const SignUp = () => {
-  const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
+  const { signUp, user, isLoading } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Redirect if already logged in
+  if (user) {
+    return <Navigate to="/dashboard" />;
+  }
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
       email: "",
+      username: "",
+      fullName: "",
       password: "",
-      termsAccepted: false,
+      confirmPassword: "",
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true);
-    
-    // This would be replaced with actual API call in a real implementation
-    console.log(values);
-    
-    setTimeout(() => {
-      setIsLoading(false);
-      toast.success("Account created successfully!");
-      navigate("/");
-    }, 1500);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      setIsSubmitting(true);
+      
+      await signUp(values.email, values.password, {
+        username: values.username,
+        full_name: values.fullName,
+      });
+      
+      form.reset();
+      toast.success("Account created! Please check your email for verification.");
+    } catch (error) {
+      console.error("Sign up error:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -81,12 +95,9 @@ const SignUp = () => {
         
         <Card className="animate-scale-in">
           <CardHeader className="space-y-1">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
-              <Badge variant="outline">Free</Badge>
-            </div>
+            <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
             <CardDescription>
-              Enter your information to create your account
+              Enter your details to start using Knowledge Barter
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -94,30 +105,51 @@ const SignUp = () => {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="John Doe" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
                   name="email"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="john@example.com" {...field} />
+                        <Input type="email" placeholder="you@example.com" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="username"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Username</FormLabel>
+                        <FormControl>
+                          <Input placeholder="johndoe" {...field} />
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          Your unique username on the platform
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="fullName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="John Doe" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
                 <FormField
                   control={form.control}
                   name="password"
@@ -125,44 +157,51 @@ const SignUp = () => {
                     <FormItem>
                       <FormLabel>Password</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="Create a password" {...field} />
+                        <Input 
+                          type="password" 
+                          placeholder="Create a password" 
+                          {...field} 
+                        />
                       </FormControl>
-                      <FormDescription>
-                        At least 8 characters
+                      <FormDescription className="text-xs">
+                        At least 6 characters
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+                
                 <FormField
                   control={form.control}
-                  name="termsAccepted"
+                  name="confirmPassword"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormItem>
+                      <FormLabel>Confirm Password</FormLabel>
                       <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
+                        <Input 
+                          type="password" 
+                          placeholder="Confirm your password" 
+                          {...field} 
                         />
                       </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>
-                          I agree to the{" "}
-                          <Link to="/terms" className="text-primary hover:underline">
-                            terms of service
-                          </Link>{" "}
-                          and{" "}
-                          <Link to="/privacy" className="text-primary hover:underline">
-                            privacy policy
-                          </Link>
-                        </FormLabel>
-                        <FormMessage />
-                      </div>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Creating account..." : "Create account"}
+                
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={isSubmitting || isLoading}
+                >
+                  {isSubmitting || isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating account...
+                    </>
+                  ) : (
+                    "Create Account"
+                  )}
                 </Button>
               </form>
             </Form>
@@ -173,6 +212,9 @@ const SignUp = () => {
               <Link to="/signin" className="text-primary hover:underline">
                 Sign in
               </Link>
+            </div>
+            <div className="text-center text-xs text-muted-foreground">
+              By creating an account, you agree to our Terms of Service and Privacy Policy.
             </div>
           </CardFooter>
         </Card>

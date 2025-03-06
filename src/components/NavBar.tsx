@@ -3,12 +3,23 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Menu, X, User, LogIn } from "lucide-react";
+import { Menu, X, User, LogIn, LogOut, LayoutDashboard } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const NavBar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { user, signOut } = useAuth();
 
   // Handle scroll effect
   useEffect(() => {
@@ -73,18 +84,55 @@ const NavBar = () => {
             ))}
           </ul>
           <div className="flex items-center space-x-2">
-            <Link to="/signin">
-              <Button variant="ghost" size="sm">
-                <LogIn className="h-4 w-4 mr-2" />
-                Sign In
-              </Button>
-            </Link>
-            <Link to="/signup">
-              <Button size="sm">
-                <User className="h-4 w-4 mr-2" />
-                Get Started
-              </Button>
-            </Link>
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src="" alt={user.email || ""} />
+                      <AvatarFallback>{user.email?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+                    </Avatar>
+                    <span className="hidden sm:inline">My Account</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/dashboard">
+                      <LayoutDashboard className="h-4 w-4 mr-2" />
+                      Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to={`/profile/${user.id}`}>
+                      <User className="h-4 w-4 mr-2" />
+                      My Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => signOut()}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <Link to="/signin">
+                  <Button variant="ghost" size="sm">
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Sign In
+                  </Button>
+                </Link>
+                <Link to="/signup">
+                  <Button size="sm">
+                    <User className="h-4 w-4 mr-2" />
+                    Get Started
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </nav>
 
@@ -124,18 +172,41 @@ const NavBar = () => {
               ))}
             </ul>
             <div className="flex flex-col space-y-3">
-              <Link to="/signin">
-                <Button variant="outline" className="w-full justify-start" size="sm">
-                  <LogIn className="h-4 w-4 mr-2" />
-                  Sign In
-                </Button>
-              </Link>
-              <Link to="/signup">
-                <Button className="w-full justify-start" size="sm">
-                  <User className="h-4 w-4 mr-2" />
-                  Get Started
-                </Button>
-              </Link>
+              {user ? (
+                <>
+                  <Link to="/dashboard">
+                    <Button variant="outline" className="w-full justify-start" size="sm">
+                      <LayoutDashboard className="h-4 w-4 mr-2" />
+                      Dashboard
+                    </Button>
+                  </Link>
+                  <Link to={`/profile/${user.id}`}>
+                    <Button variant="outline" className="w-full justify-start" size="sm">
+                      <User className="h-4 w-4 mr-2" />
+                      My Profile
+                    </Button>
+                  </Link>
+                  <Button onClick={() => signOut()} className="w-full justify-start" size="sm">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link to="/signin">
+                    <Button variant="outline" className="w-full justify-start" size="sm">
+                      <LogIn className="h-4 w-4 mr-2" />
+                      Sign In
+                    </Button>
+                  </Link>
+                  <Link to="/signup">
+                    <Button className="w-full justify-start" size="sm">
+                      <User className="h-4 w-4 mr-2" />
+                      Get Started
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </nav>
         </div>

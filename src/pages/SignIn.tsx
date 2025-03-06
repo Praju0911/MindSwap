@@ -1,10 +1,9 @@
 
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +25,7 @@ import {
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -38,8 +38,12 @@ const formSchema = z.object({
 });
 
 const SignIn = () => {
-  const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
+  const { signIn, user, isLoading } = useAuth();
+  
+  // Redirect if already logged in
+  if (user) {
+    return <Navigate to="/dashboard" />;
+  }
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -50,17 +54,12 @@ const SignIn = () => {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true);
-    
-    // This would be replaced with actual API call in a real implementation
-    console.log(values);
-    
-    setTimeout(() => {
-      setIsLoading(false);
-      toast.success("Signed in successfully!");
-      navigate("/");
-    }, 1500);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      await signIn(values.email, values.password);
+    } catch (error) {
+      console.error("Sign in error:", error);
+    }
   }
 
   return (
