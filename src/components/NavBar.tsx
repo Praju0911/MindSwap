@@ -54,13 +54,13 @@ const NavBar = () => {
         <Link 
           to="/" 
           className="flex items-center space-x-2"
-          aria-label="Knowledge Barter Exchange"
+          aria-label="MindSwap"
         >
           <div className="relative w-8 h-8 bg-primary rounded-md flex items-center justify-center overflow-hidden">
-            <span className="text-primary-foreground font-bold text-lg">K</span>
+            <span className="text-primary-foreground font-bold text-lg">M</span>
           </div>
           <span className="font-bold text-lg tracking-tight">
-            Knowledge Barter
+            MindSwap
           </span>
         </Link>
 
