@@ -12,10 +12,10 @@ const Footer = () => {
           <div className="space-y-4">
             <Link to="/" className="flex items-center space-x-2">
               <div className="relative w-8 h-8 bg-primary rounded-md flex items-center justify-center overflow-hidden">
-                <span className="text-primary-foreground font-bold text-lg">K</span>
+                <span className="text-primary-foreground font-bold text-lg">M</span>
               </div>
               <span className="font-bold text-lg tracking-tight">
-                Knowledge Barter
+                MindSwap
               </span>
             </Link>
             <p className="text-sm text-muted-foreground">
@@ -105,7 +105,7 @@ const Footer = () => {
         
         <div className="pt-8 mt-8 border-t text-center sm:flex sm:justify-between sm:text-left">
           <p className="text-sm text-muted-foreground">
-            &copy; {currentYear} Knowledge Barter Exchange. All rights reserved.
+            &copy; {currentYear} MindSwap. All rights reserved.
           </p>
           <p className="text-sm text-muted-foreground mt-4 sm:mt-0">
             Designed with care. Built with modern technologies.
